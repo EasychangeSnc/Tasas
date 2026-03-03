@@ -2,8 +2,10 @@ const express = require("express");
 const fs = require("fs");
 const path = require("path");
 const cors = require("cors");
-app.use(cors());
-const app = express();
+
+const app = express();   // 👈 PRIMERO se crea
+
+app.use(cors());         // 👈 DESPUÉS se usa
 app.use(express.static(__dirname));
 const monedas = [
   "USD", "GBP", "JPY", "CHF", "AUD", "CAD", "CNY",
