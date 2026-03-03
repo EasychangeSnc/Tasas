@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Casa de Cambio PRO</title>
+
+    <style>
+        body {
+            font-family: Arial;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        td,
+        th {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .up {
+            background: #b6ffb6;
+        }
+
+        .down {
+            background: #ffb6b6;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <h2>💱 Tasas EUR (Casa de Cambio)</h2>
+    <table id="tabla"></table>
+
+    <h2>💱 Conversor</h2>
+
+    <input type="number" id="monto" value="1">
+    <select id="origen"></select>
+    ➡️
+    <select id="destino"></select>
+    <button onclick="convertir()">Convertir</button>
+
+    <h3 id="resultado"></h3>
+
+    <h2>🏦 Comparación Central vs Banco Italia</h2>
+    <table id="tablaComparacion"></table>
+    <script>
+        const nombresMonedas = {
+            USD: "Dólar estadounidense",
+            EUR: "Euro",
+            GBP: "Libra esterlina",
+            JPY: "Yen japonés",
+            CHF: "Franco suizo",
+            AUD: "Dólar australiano",
+            CAD: "Dólar canadiense",
+            CNY: "Yuan chino",
+            SEK: "Corona sueca",
+            NOK: "Corona noruega",
+            DKK: "Corona danesa",
+            PLN: "Zloty polaco",
+            CZK: "Corona checa",
+            HUF: "Forinto húngaro",
+            RON: "Leu rumano",
+            TRY: "Lira turca",
+            BRL: "Real brasileño",
+            KRW: "Won surcoreano",
+            INR: "Rupia india",
+            IDR: "Rupia indonesia",
+            MYR: "Ringgit malayo",
+            PHP: "Peso filipino",
+            SGD: "Dólar de Singapur",
+            THB: "Baht tailandés",
+            NZD: "Dólar neozelandés",
+            COP: "Peso colombiano",
+            ISK: "Corona islandesa",
+            RUB: "Rublo ruso",
+            HKD: "Dólar de Hong Kong",
+            ILS: "Nuevo shekel israelí",
+            MXN: "Peso mexicano",
+            ZAR: "Rand sudafricano"
+        };
+        let tasasEUR = {};
+
+        // 🔹 cargar datos
+        async function cargar() {
+            try {
+                const res = await fetch('/api/tasas');
+
+                if (!res.ok) {
+                    throw new Error("Error en API");
+                }
+
+                const data = await res.json();
+
+                if (!data.detalleEUR) {
+                    console.error("Respuesta incorrecta:", data);
+                    return;
+                }
+
+                tasasEUR = data.eur || {};
+                tasasEUR["EUR"] = 1;
+
+                renderTabla(data.detalleEUR);
+                renderComparacion(data.comparacion);
+
+                if (document.getElementById("origen").options.length === 0) {
+                    llenarSelects();
+                }
+
+            } catch (error) {
+                console.error("Error cargando datos:", error);
+            }
+        }
+
+        // 🔹 tabla profesional
+        function renderTabla(obj) {
+
+            let html = `
+    <tr>
+        <th>Moneda</th>
+        <th>Valor</th>
+        <th>Cambio</th>
+        <th>Compra</th>
+        <th>Venta</th>
+    </tr>`;
+
+            for (let m in obj) {
+
+                let f = obj[m];
+
+                let color = "";
+                if (f.cambio > 0) color = "up";
+                if (f.cambio < 0) color = "down";
+
+                html += `
+        <tr class="${color}">
+            <td>${m} - ${nombresMonedas[m] || m}</td>
+            <td>${f.valor}</td>
+            <td>${f.cambio}</td>
+            <td>${f.compra}</td>
+            <td>${f.venta}</td>
+        </tr>`;
+            }
+
+            document.getElementById("tabla").innerHTML = html;
+        }
+
+        // 🔹 llenar selects
+        function llenarSelects() {
+            const monedas = Object.keys(tasasEUR);
+
+            let origen = document.getElementById("origen");
+            let destino = document.getElementById("destino");
+
+            monedas.forEach(m => {
+                origen.innerHTML += `<option>${m}</option>`;
+                destino.innerHTML += `<option>${m}</option>`;
+            });
+
+            origen.value = "USD";
+            destino.value = "COP";
+        }
+
+        // 🔹 convertir
+        function convertir() {
+            let monto = parseFloat(document.getElementById("monto").value);
+            let origen = document.getElementById("origen").value;
+            let destino = document.getElementById("destino").value;
+
+            let resultado = (monto / tasasEUR[origen]) * tasasEUR[destino];
+
+            document.getElementById("resultado").textContent =
+                `${monto} ${origen} = ${resultado.toFixed(2)} ${destino}`;
+        }
+
+        // 🔹 auto
+        setInterval(cargar, 5000);
+        cargar();
+
+        // 🔥 WEBSOCKET
+        const ws = new WebSocket('wss://fastforex.wsdx.io');
+
+        let lastBid = null;
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+
+            if (data.sym === "EURUSD") {
+                let bid = parseFloat(data.bid);
+                let ask = parseFloat(data.ask);
+
+                document.getElementById("bid").textContent = bid;
+                document.getElementById("ask").textContent = ask;
+
+                lastBid = bid;
+            }
+        };
+        function renderComparacion(obj) {
+
+            let html = `
+    <tr>
+        <th>Moneda</th>
+        <th>Central</th>
+        <th>Italia</th>
+        <th>6%</th>
+        <th>Diferencia</th>
+    </tr>`;
+
+            for (let m in obj) {
+
+                let f = obj[m];
+
+                let color = "";
+                if (f.diferencia > 0) color = "up";
+                if (f.diferencia < 0) color = "down";
+
+                html += `
+        <tr class="${color}">
+            <td>${m} - ${nombresMonedas[m] || m}</td>
+            <td>${f.central}</td>
+            <td>${f.italia}</td>
+            <td>${(f.italia* 1.06) }</td>
+            <td>${f.diferencia}</td>
+        </tr>`;
+            }
+
+            document.getElementById("tablaComparacion").innerHTML = html;
+        }
+    </script>
+
+</body>
+
+</html>
+<!-- // VEr solo 
+GBP
+CHF
+JPY
+CAD
+AUD
+ +6%
+PLN
+RON
+HUF
+TRY
+CNY
+BRL
+MXN
+ZAR
+NZD 
+KRW
+HKD
+SGD
+10%
+
+El modulo  de los cambios debe tener un boton que cuando yo oprima este toma los cambios actuales en ese momento
+  -->
