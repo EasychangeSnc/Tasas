@@ -90,7 +90,7 @@
         // 🔹 cargar datos
         async function cargar() {
             try {
-                const res = await fetch('/api/tasas');
+                const res = await fetch('https://tasas-production.up.railway.app/api/tasas');
 
                 if (!res.ok) {
                     throw new Error("Error en API");
