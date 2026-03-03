@@ -1,7 +1,8 @@
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
-
+const cors = require("cors");
+app.use(cors());
 const app = express();
 app.use(express.static(__dirname));
 const monedas = [
