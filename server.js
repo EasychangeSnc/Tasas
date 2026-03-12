@@ -71,7 +71,7 @@ async function obtenerECB() {
 // 🔹 FastForex
 async function obtenerFF() {
   const res = await fetch(
-    "https://api.fastforex.io/fetch-all?api_key=2d924da6ee-5271df6261-tb4nxq"
+    "https://api.fastforex.io/fetch-all?api_key=c7c92367ae-2847cb2284-tb86e2"
   );
   const data = await res.json();
 
